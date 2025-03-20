@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  username    String    @unique
+  password    String
+  departamento Departamento
+  tickets     Ticket[]  @relation("UserTickets")
+}
+
+model Ticket {
+  id          Int       @id @default(autoincrement())
+  asunto      String
+  descripcion String
+  urgencia    Urgencia
+  categoria   Categoria
+  fecha       DateTime  @default(now())
+  estado      Estado    @default(Pendiente)
+  userId      Int
+  user        User      @relation("UserTickets", fields: [userId], references: [id])
+}
+
+enum Urgencia {
+  Baja
+  Media
+  Alta
+}
+
+enum Categoria {
+  Desarrollo
+  Soporte
+  Redes
+  Correos
+}
+
+enum Estado {
+  Pendiente
+  En_proceso @map("En proceso")
+  Completado
+}
+
+enum Departamento {
+  Sistemas
+  Recursos_Humanos @map("Recursos Humanos")
+  Finanzas
+  Monitoreo
+  Seguridad_Patrimonial @map("Seguridad Patrimonial")
+  Operaciones
+  Ventas
+}

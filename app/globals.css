@@ -8,6 +8,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --gris: #f3f2f2;
+  --amarillokgc: #EDD82D;
+  --amarillokgc-hover: #d4c227;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,4 +24,62 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.custom-size {
+  width: 98%;
+  height: 97%;
+  background-color: var(--gris);
+}
+
+.gris {
+  background-color: var(--gris);
+}
+
+.amarillokgc {
+  background-color: var(--amarillokgc);
+}
+
+.bordeamarillokgc {
+  border-color: var(--amarillokgc);
+}
+
+.amarillokgc:hover {
+  background-color: var(--amarillokgc-hover);
+}
+
+/* Ocultar el título y el nombre de usuario en pantallas pequeñas */
+@media (max-width: 767px) {
+  .hide-on-small {
+    display: none;
+  }
+}
+
+
+
+.modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  margin-right: -50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+.modal-content {
+  color: black; /* Asegúrate de que el texto sea visible */
 }
