@@ -4,16 +4,38 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactPaginate from "react-paginate";
 
+// Definición de tipos
+interface User {
+  id: number;
+  username: string;
+  departamento?: string;
+  [key: string]: any; // Para propiedades adicionales
+}
+
+interface Ticket {
+  id: number;
+  asunto: string;
+  descripcion: string;
+  estado: 'Pendiente' | 'En_proceso' | 'Completado' | string;
+  categoria: string;
+  urgencia: string;
+  fecha: string | Date;
+  user: User;
+}
+
+type StatusFilter = "Todos" | "Activos";
+
 export default function Inicio() {
-  const [tickets, setTickets] = useState([]);
-  const [usuario, setUsuario] = useState("");
-  const [rol, setRol] = useState("");
-  const [filterStatus, setFilterStatus] = useState("Todos");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(0);
-  const ticketsPerPage = 15; // Número de tickets por página
+  // Estados con tipos definidos
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [usuario, setUsuario] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>("Todos");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const ticketsPerPage = 15;
   const router = useRouter();
 
+  // Efecto para cargar datos
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -33,9 +55,8 @@ export default function Inicio() {
           router.push("/");
           return;
         }
-        const data = await response.json();
+        const data: User = await response.json();
         setUsuario(data.username);
-        setRol(data.rol);
 
         if (data.departamento !== "Sistemas") {
           router.push("/generar-ticket");
@@ -57,7 +78,7 @@ export default function Inicio() {
           router.push("/");
           return;
         }
-        const data = await response.json();
+        const data: Ticket[] = await response.json();
         setTickets(data);
       } catch (error) {
         console.error("Error fetching tickets:", error);
@@ -68,16 +89,22 @@ export default function Inicio() {
     fetchTickets();
   }, [router]);
 
+  // Manejadores de eventos
   const handleGenerateTicket = () => {
     router.push("/generar-ticket");
   };
 
-  const handleTicketClick = (id) => {
+  const handleTicketClick = (id: number) => {
     router.push(`/ver-ticket/${id}`);
   };
 
-  const handleStatusChange = async (id, newStatus) => {
+  const handleStatusChange = async (id: number, newStatus: string) => {
     const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/');
+      return;
+    }
+  
     try {
       const response = await fetch(`/api/tickets`, {
         method: 'PUT',
@@ -85,37 +112,46 @@ export default function Inicio() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ id, estado: newStatus })
+        body: JSON.stringify({ 
+          id, 
+          estado: newStatus 
+        })
       });
+      
       if (response.ok) {
         const updatedTicket = await response.json();
-        setTickets(tickets.map(ticket => ticket.id === id ? updatedTicket : ticket));
+        setTickets(tickets.map(ticket => 
+          ticket.id === id ? updatedTicket : ticket
+        ));
       } else {
-        console.error('Error updating ticket status');
+        const errorData = await response.json();
+        console.error('Error updating ticket:', errorData.message);
+        alert(`Error al actualizar el ticket: ${errorData.message || 'Error desconocido'}`);
       }
     } catch (error) {
-      console.error('Error updating ticket status:', error);
+      console.error('Network error:', error);
+      alert('Error de conexión al actualizar el ticket');
     }
   };
 
-  const handlePageClick = ({ selected }) => {
+  
+  const handlePageClick = ({ selected }: { selected: number }) => {
     setCurrentPage(selected);
   };
 
+  // Filtrado de tickets
   const filteredTickets = tickets.filter(
     (ticket) =>
       (filterStatus === "Todos" || ticket.estado !== "Completado") &&
       (ticket.asunto.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (ticket.user?.username?.toLowerCase().includes(searchQuery.toLowerCase()) ??
-          false) ||
-        new Date(ticket.fecha).toLocaleDateString().includes(searchQuery) ||
-        ticket.estado.toLowerCase().replace(" ", "_").includes(searchQuery.toLowerCase()) ||
-        ticket.estado.toLowerCase().replace("_", " ").includes(searchQuery.toLowerCase()) ||
-        (ticket.user?.departamento?.toLowerCase().includes(searchQuery.toLowerCase()) ??
-          false))
-  );
+      (ticket.user?.username?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      new Date(ticket.fecha).toLocaleDateString().includes(searchQuery) ||
+      ticket.estado.toLowerCase().replace(" ", "_").includes(searchQuery.toLowerCase()) ||
+      ticket.estado.toLowerCase().replace("_", " ").includes(searchQuery.toLowerCase()) ||
+      (ticket.user?.departamento?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+  ));
 
-  // Calcular los tickets a mostrar en la página actual
+  // Paginación
   const offset = currentPage * ticketsPerPage;
   const currentTickets = filteredTickets.slice(offset, offset + ticketsPerPage);
   const pageCount = Math.ceil(filteredTickets.length / ticketsPerPage);
@@ -127,7 +163,7 @@ export default function Inicio() {
           <p className="text-xs text-gray-500">{usuario}</p>
           <h1 className="text-2xl font-bold">Ticket Master</h1>
         </div>
-        <div className="flex justify-center items-center ">
+        <div className="flex justify-center items-center">
           <input
             type="text"
             value={searchQuery}
@@ -143,7 +179,7 @@ export default function Inicio() {
             </label>
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={(e) => setFilterStatus(e.target.value as StatusFilter)}
               className="border border-gray-300 rounded p-1 text-sm"
             >
               <option value="Todos">Todos</option>

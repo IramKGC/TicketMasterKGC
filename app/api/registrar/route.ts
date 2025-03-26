@@ -3,17 +3,29 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
+interface DepartamentoColumn {
+  Type: string;
+}
 
 export async function GET(req: NextRequest) {
   try {
-    const departamentos = await prisma.$queryRaw`SHOW COLUMNS FROM User LIKE 'departamento'`;
-    console.log('Departamentos:', departamentos);
-    const enumValues = departamentos[0].Type.match(/enum\(([^)]+)\)/)[1].split(',').map(value => value.replace(/'/g, ''));
-    console.log('Enum Values:', enumValues);
-    return NextResponse.json(enumValues, { status: 200 });
+      const departamentos = await prisma.$queryRaw<DepartamentoColumn[]>`SHOW COLUMNS FROM User LIKE 'departamento'`;
+      if (departamentos && departamentos.length > 0) {
+          const matchResult = departamentos[0].Type.match(/enum\(([^)]+)\)/);
+          if (matchResult) {
+            // Especificar el tipo de 'value' como string
+              const enumValues = matchResult[1].split(',').map((value: string) => value.replace(/'/g, '')); 
+              return NextResponse.json(enumValues, { status: 200 });
+          } else {
+            // Devuelve un array vacío si no es un enum
+              return NextResponse.json([], { status: 200 }); 
+          }
+      } else {
+        // Devuelve un array vacío si no se encuentra la columna
+          return NextResponse.json([], { status: 200 }); 
+      }
   } catch (error) {
-    console.error('Error fetching departamentos:', error);
-    return NextResponse.json({ message: 'Error fetching departamentos' }, { status: 500 });
+      return NextResponse.json({ message: 'Error fetching departamentos' }, { status: 500 });
   }
 }
 

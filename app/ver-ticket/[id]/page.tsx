@@ -3,14 +3,27 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from 'next/navigation';
 
-const departamentosYResponsables = {
-  'usuario1@example.com': { departamento: 'Departamento A', responsable: 'Responsable A' },
-  'usuario2@example.com': { departamento: 'Departamento B', responsable: 'Responsable B' },
-  // Agrega más usuarios según sea necesario
-};
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  departamento: string;
+  tickets: Ticket[];
+}
+
+interface Ticket {
+  id: number;
+  asunto: string;
+  descripcion: string;
+  estado: string;
+  categoria: string;
+  urgencia: string;
+  fecha: Date | string;
+  user: User;
+}
 
 export default function VerTicket() {
-  const [ticket, setTicket] = useState(null);
+  const [ticket, setTicket] = useState<Ticket | null>(null);
   const [asunto, setAsunto] = useState('');
   const [estado, setEstado] = useState('');
   const [departamento, setDepartamento] = useState('');
@@ -20,7 +33,7 @@ export default function VerTicket() {
   const [urgencia, setUrgencia] = useState('');
   const [usuario, setUsuario] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { id } = useParams();
 
@@ -162,8 +175,8 @@ export default function VerTicket() {
               <div className="w-full">
                   <label className="block text-sm font-medium text-gray-700">Descripción</label>
                   <div className="mt-1 block w-full border border-gray-300 rounded-2xl shadow-sm sm:text-sm bg-gray-100 p-2 h-24 text-black" style={{ wordWrap: 'break-word', overflowWrap: 'break-word', overflowY: 'auto' }}>
-                      {ticket.descripcion}
-                  </div>
+                    {ticket.descripcion}
+                </div>
               </div>
               <div className="w-full flex justify-end">
                 <button

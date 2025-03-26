@@ -13,9 +13,18 @@ export async function GET(req: NextRequest) {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
+    const decoded = jwt.verify(token, SECRET_KEY) as { userId: string }; // Asegura el tipo
+    
+    // Convierte el userId a número
+    const userId = parseInt(decoded.userId, 10);
+    
+    // Verifica que la conversión fue exitosa
+    if (isNaN(userId)) {
+      return NextResponse.json({ message: 'ID de usuario inválido' }, { status: 400 });
+    }
+
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: userId }, // Usa el número convertido
     });
 
     if (!user) {
@@ -25,6 +34,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(user, { status: 200 });
   } catch (error) {
     console.error('Error fetching user information:', error);
-    return NextResponse.json({ message: 'Token inválido o expirado' }, { status: 401 });
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : 'Token inválido o expirado' },
+      { status: 401 }
+    );
   }
 }

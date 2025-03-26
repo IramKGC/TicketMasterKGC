@@ -3,87 +3,96 @@ import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
-const SECRET_KEY = 'iAHu4fyQ90zONRoESIdqAHx4QjpZJtxY6NYOvl7VgrE=';
+const SECRET_KEY = process.env.JWT_SECRET ||'iAHu4fyQ90zONRoESIdqAHx4QjpZJtxY6NYOvl7VgrE=';
+
+export async function PUT(req: NextRequest) {
+  try {
+    const token = req.headers.get('Authorization')?.split(' ')[1];
+    if (!token) {
+      return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
+    }
+
+    // Verificar el token
+    jwt.verify(token, SECRET_KEY);
+
+    // Obtener datos del cuerpo
+    const { id, estado } = await req.json();
+
+    // Validar datos
+    if (!id || isNaN(Number(id))) {
+      return NextResponse.json({ message: 'ID de ticket inválido' }, { status: 400 });
+    }
+
+    const validStates = ['Pendiente', 'En_proceso', 'Completado'];
+    if (!estado || !validStates.includes(estado)) {
+      return NextResponse.json({ message: 'Estado inválido' }, { status: 400 });
+    }
+
+    // Actualizar el ticket
+    const updatedTicket = await prisma.ticket.update({
+      where: { id: Number(id) },
+      data: { estado },
+      include: { user: true },
+    });
+
+    return NextResponse.json(updatedTicket);
+
+  } catch (error) {
+    console.error('Error updating ticket:', error);
+    return NextResponse.json(
+      { message: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-  }
-
-  const token = authHeader.split(' ')[1];
   try {
+    const token = req.headers.get('Authorization')?.split(' ')[1];
+    if (!token) throw new Error('No autorizado');
+    
     jwt.verify(token, SECRET_KEY);
+    
     const tickets = await prisma.ticket.findMany({
-      include: {
-        user: true,
-      },
+      include: { user: true },
     });
-    return NextResponse.json(tickets, { status: 200 });
+    
+    return NextResponse.json(tickets);
   } catch (error) {
     console.error('Error fetching tickets:', error);
-    return NextResponse.json({ message: 'Token inválido o expirado' }, { status: 401 });
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : 'Error del servidor' },
+      { status: 401 }
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-  }
-
-  const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
+    const token = req.headers.get('Authorization')?.split(' ')[1];
+    if (!token) throw new Error('No autorizado');
+    
+    const decoded = jwt.verify(token, SECRET_KEY) as { userId: string };
     const { asunto, descripcion, urgencia, categoria } = await req.json();
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-    });
-
-    if (!user) {
-      return NextResponse.json({ message: 'Usuario no encontrado' }, { status: 404 });
-    }
-
-    const ticket = await prisma.ticket.create({
+    
+    const newTicket = await prisma.ticket.create({
       data: {
         asunto,
         descripcion,
         urgencia,
         categoria,
-        fecha: new Date(),
         estado: 'Pendiente',
-        userId: user.id,
+        userId: parseInt(decoded.userId, 10), // Conversión a número
+        fecha: new Date(),
       },
     });
-
-    return NextResponse.json(ticket, { status: 201 });
+    
+    return NextResponse.json(newTicket, { status: 201 });
   } catch (error) {
     console.error('Error creating ticket:', error);
-    return NextResponse.json({ message: 'Token inválido o expirado' }, { status: 401 });
-  }
-}
-
-export async function PUT(req: NextRequest) {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, SECRET_KEY);
-    const { id, estado } = await req.json();
-
-    const ticket = await prisma.ticket.update({
-      where: { id },
-      data: { estado },
-      include: { user: true }, // Asegurarse de incluir la relación user
-    });
-
-    return NextResponse.json(ticket, { status: 200 });
-  } catch (error) {
-    console.error('Error updating ticket:', error);
-    return NextResponse.json({ message: 'Token inválido o expirado' }, { status: 401 });
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : 'Error del servidor' },
+      { status: 401 }
+    );
   }
 }

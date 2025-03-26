@@ -10,8 +10,8 @@
     "skipLibCheck": true,
     "strict": true,
     "esModuleInterop": true,
-    "module": "commonjs", // Cambiar a "commonjs"
-    "moduleResolution": "node", // Cambiar a "node"
+    "module": "NodeNext", 
+    "moduleResolution": "nodenext", 
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
