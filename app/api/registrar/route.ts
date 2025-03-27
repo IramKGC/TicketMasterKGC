@@ -7,7 +7,7 @@ interface DepartamentoColumn {
   Type: string;
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
       const departamentos = await prisma.$queryRaw<DepartamentoColumn[]>`SHOW COLUMNS FROM User LIKE 'departamento'`;
       if (departamentos && departamentos.length > 0) {
@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json([], { status: 200 }); 
       }
   } catch (error) {
+      console.error('Error fetching departamentos:', error);
       return NextResponse.json({ message: 'Error fetching departamentos' }, { status: 500 });
   }
 }

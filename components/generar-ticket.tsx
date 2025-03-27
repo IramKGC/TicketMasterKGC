@@ -10,13 +10,12 @@ import ventaDeEntradas from '/public/venta-de-entradas.png';
 interface UserData {
   username: string;
   departamento: string;
-  [key: string]: string | number | boolean; // Para propiedades adicionales
 }
 
 interface FormErrors {
   asunto?: string;
   descripcion?: string;
-  [key: string]: string | undefined;
+  submit?: string;
 }
 
 type Urgencia = 'Baja' | 'Media' | 'Alta';

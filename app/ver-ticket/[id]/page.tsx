@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from 'next/navigation';
+import Image from "next/image"; // Añadido para reemplazar img
 
 interface User {
   id: number;
@@ -24,13 +25,6 @@ interface Ticket {
 
 export default function VerTicket() {
   const [ticket, setTicket] = useState<Ticket | null>(null);
-  const [asunto, setAsunto] = useState('');
-  const [estado, setEstado] = useState('');
-  const [departamento, setDepartamento] = useState('');
-  const [responsable, setResponsable] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [categoria, setCategoria] = useState('');
-  const [urgencia, setUrgencia] = useState('');
   const [usuario, setUsuario] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +32,7 @@ export default function VerTicket() {
   const { id } = useParams();
 
   useEffect(() => {
-    if (!id) return; // No hacer fetch si id aún no está disponible
+    if (!id) return;
 
     const fetchUsuario = async () => {
       const token = localStorage.getItem('token');
@@ -54,7 +48,6 @@ export default function VerTicket() {
           }
         });
         if (response.status === 401) {
-          // Token expirado o no autorizado
           localStorage.removeItem('token');
           router.push('/');
           return;
@@ -81,13 +74,6 @@ export default function VerTicket() {
         if (response.ok) {
           const data = await response.json();
           setTicket(data);
-          setAsunto(data.asunto);
-          setEstado(data.estado);
-          setDepartamento(data.user.departamento);
-          setResponsable(data.user.username);
-          setDescripcion(data.descripcion);
-          setCategoria(data.categoria);
-          setUrgencia(data.urgencia);
         } else {
           const errorData = await response.json();
           setError(errorData.message);
@@ -130,7 +116,13 @@ export default function VerTicket() {
         <div className="relative w-3/5 custom-height bg-white rounded-3xl flex flex-col justify-center items-center border-2 border-zinc-100 p-6 lg:p-12">
           <div className="w-full flex flex-col items-center">
             <div className="flex flex-col items-center mb-4">
-              <img src="/venta-de-entradas.png" alt="Venta de Entradas" className="w-auto h-16 lg:h-24 mb-4" />
+              <Image 
+                src="/venta-de-entradas.png" 
+                alt="Venta de Entradas" 
+                width={96} 
+                height={96} 
+                className="w-auto h-16 lg:h-24 mb-4" 
+              />
               <h1 className="text-2xl lg:text-3xl font-bold text-black">Ver Ticket</h1>
             </div>
             <div className="w-full flex flex-col items-center space-y-4">

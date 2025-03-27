@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       const decoded = jwt.verify(token, SECRET_KEY) as { id: number };
       const userId = decoded.id;
 
-      const { asunto, estado, responsable, descripcion, urgencia, categoria } = await req.json(); // Obtener urgencia y categoria
+      const { asunto, estado, descripcion, urgencia, categoria } = await req.json(); // Obtener urgencia y categoria
 
       const fecha = new Date();
 

@@ -9,7 +9,6 @@ interface User {
   id: number;
   username: string;
   departamento?: string;
-  [key: string]: any; // Para propiedades adicionales
 }
 
 interface Ticket {
@@ -134,7 +133,7 @@ export default function Inicio() {
     }
   };
 
-  
+
   const handlePageClick = ({ selected }: { selected: number }) => {
     setCurrentPage(selected);
   };
