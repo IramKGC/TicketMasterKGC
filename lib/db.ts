@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 declare global {
   var prisma: PrismaClient | undefined;
 }
-console.log('DATABASE_URL:', process.env.DATABASE_URL);
+
 // PrismaClient singleton para evitar múltiples instancias en desarrollo
 // y asegurar que las conexiones se cierren adecuadamente en producción
 const prisma = globalThis.prisma || new PrismaClient({
