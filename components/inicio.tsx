@@ -66,21 +66,29 @@ export default function Inicio() {
     };
 
     const fetchTickets = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/');
+        return;
+      }
+    
       try {
-        const response = await fetch("/api/tickets", {
+        const response = await fetch('/api/tickets', {
+          method: 'GET', 
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`,
           },
         });
-        if (response.status === 401) {
-          localStorage.removeItem("token");
-          router.push("/");
+    
+        if (!response.ok) {
+          console.error(`Error al obtener los tickets: ${response.status} ${response.statusText}`);
           return;
         }
-        const data: Ticket[] = await response.json();
+    
+        const data = await response.json();
         setTickets(data);
       } catch (error) {
-        console.error("Error fetching tickets:", error);
+        console.error('Error fetching tickets:', error);
       }
     };
 
@@ -138,17 +146,23 @@ export default function Inicio() {
     setCurrentPage(selected);
   };
 
-  // Filtrado de tickets
-  const filteredTickets = tickets.filter(
-    (ticket) =>
-      (filterStatus === "Todos" || ticket.estado !== "Completado") &&
-      (ticket.asunto.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (ticket.user?.username?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+ // Filtrado de tickets
+const filteredTickets = tickets.filter((ticket) => {
+  const query = searchQuery.toLowerCase().replace(/ /g, "_");
+  const estadoNormalizado = ticket.estado?.toLowerCase().replace(/ /g, "_");
+
+  return (
+    (filterStatus === "Todos" || ticket.estado !== "Completado") &&
+    (
+      ticket.categoria?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ticket.urgencia?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       new Date(ticket.fecha).toLocaleDateString().includes(searchQuery) ||
-      ticket.estado.toLowerCase().replace(" ", "_").includes(searchQuery.toLowerCase()) ||
-      ticket.estado.toLowerCase().replace("_", " ").includes(searchQuery.toLowerCase()) ||
-      (ticket.user?.departamento?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-  ));
+      ticket.user?.username?.toLowerCase().includes(searchQuery.toLowerCase()) || // responsable
+      estadoNormalizado.includes(query)
+    )
+  );
+});
+
 
   // Paginación
   const offset = currentPage * ticketsPerPage;

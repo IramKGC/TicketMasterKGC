@@ -1,11 +1,77 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+// app/api/tickets/route.ts
+import { NextResponse } from 'next/server'
+import prisma from '@/lib/db'
+import jwt from 'jsonwebtoken'
 
-const prisma = new PrismaClient();
-const SECRET_KEY = process.env.JWT_SECRET ||'iAHu4fyQ90zONRoESIdqAHx4QjpZJtxY6NYOvl7VgrE=';
+const SECRET_KEY = process.env.JWT_SECRET || '';
 
-export async function PUT(req: NextRequest) {
+
+export async function GET() {
+  try {
+    const tickets = await prisma.ticket.findMany({
+      include: {
+        user: true, // Incluye los datos del usuario relacionado
+      },
+    });
+    return NextResponse.json(tickets, { status: 200 });
+  } catch (error) {
+    console.error('Error al obtener los tickets:', error);
+    return NextResponse.json({ message: 'Error al obtener los tickets' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.split(' ')[1];
+
+    if (!token) {
+      return NextResponse.json(
+        { message: 'Error de autenticación: token no encontrado' },
+        { status: 401 }
+      );
+    }
+
+    // Decodificar el token
+    const decoded = jwt.verify(token, SECRET_KEY) as { userId: number };
+    const userId = decoded.userId;
+
+    const body = await request.json();
+    const { asunto, descripcion, urgencia, categoria } = body;
+
+    // Validaciones de datos
+    if (!asunto || !descripcion || !urgencia || !categoria) {
+      return NextResponse.json(
+        { message: 'Todos los campos son requeridos.' },
+        { status: 400 }
+      );
+    }
+
+    // Crear el ticket
+    const newTicket = await prisma.ticket.create({
+      data: {
+        asunto,
+        descripcion,
+        urgencia,
+        categoria,
+        fecha: new Date(),
+        estado: 'Pendiente',
+        userId,
+      },
+    });
+
+    return NextResponse.json(newTicket, { status: 201 });
+  } catch (error) {
+    console.error('Error al crear ticket:', error);
+
+    return NextResponse.json(
+      { message: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req: Request) {
   try {
     const token = req.headers.get('Authorization')?.split(' ')[1];
     if (!token) {
@@ -42,57 +108,6 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json(
       { message: 'Error interno del servidor' },
       { status: 500 }
-    );
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const token = req.headers.get('Authorization')?.split(' ')[1];
-    if (!token) throw new Error('No autorizado');
-    
-    jwt.verify(token, SECRET_KEY);
-    
-    const tickets = await prisma.ticket.findMany({
-      include: { user: true },
-    });
-    
-    return NextResponse.json(tickets);
-  } catch (error) {
-    console.error('Error fetching tickets:', error);
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : 'Error del servidor' },
-      { status: 401 }
-    );
-  }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const token = req.headers.get('Authorization')?.split(' ')[1];
-    if (!token) throw new Error('No autorizado');
-    
-    const decoded = jwt.verify(token, SECRET_KEY) as { userId: string };
-    const { asunto, descripcion, urgencia, categoria } = await req.json();
-    
-    const newTicket = await prisma.ticket.create({
-      data: {
-        asunto,
-        descripcion,
-        urgencia,
-        categoria,
-        estado: 'Pendiente',
-        userId: parseInt(decoded.userId, 10), // Conversión a número
-        fecha: new Date(),
-      },
-    });
-    
-    return NextResponse.json(newTicket, { status: 201 });
-  } catch (error) {
-    console.error('Error creating ticket:', error);
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : 'Error del servidor' },
-      { status: 401 }
     );
   }
 }

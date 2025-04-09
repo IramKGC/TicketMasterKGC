@@ -1,36 +1,76 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+// app/api/login/route.ts
+import { NextResponse } from 'next/server'
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
+import prisma from '@/lib/db'
 
-const prisma = new PrismaClient();
-const SECRET_KEY = 'iAHu4fyQ90zONRoESIdqAHx4QjpZJtxY6NYOvl7VgrE=';
+const SECRET_KEY = process.env.JWT_SECRET || ''
+const TOKEN_EXPIRATION = '8h'
 
-export async function POST(req: NextRequest) {
-  const { username, password } = await req.json();
-
+export async function POST(request: Request) {
   try {
+    // 1. Validación rápida del cuerpo
+    const body = await request.json()
+    const { username, password } = body
+    
+    if (!username?.trim() || !password?.trim()) {
+      return NextResponse.json(
+        { message: 'Usuario y contraseña requeridos' },
+        { status: 400 }
+      )
+    }
+
+    // 2. Buscar usuario (solo campos necesarios)
     const user = await prisma.user.findUnique({
-      where: { username },
-    });
+      where: { username: username.trim() },
+      select: { id: true, password: true, username: true, departamento: true }
+    })
 
-    if (!user) {
-      return NextResponse.json({ message: 'Nombre de usuario o contraseña incorrectos' }, { status: 401 });
+    // 3. Comparación segura de contraseña
+    const isValid = user && await bcrypt.compare(password.trim(), user.password)
+    if (!isValid) {
+      return NextResponse.json(
+        { message: 'Credenciales inválidas' },
+        { status: 401 }
+      )
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    // 4. Generar token JWT
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username
+      },
+      SECRET_KEY,
+      { expiresIn: TOKEN_EXPIRATION }
+    )
 
-    if (!isPasswordValid) {
-      return NextResponse.json({ message: 'Nombre de usuario o contraseña incorrectos' }, { status: 401 });
-    }
+    // 5. Responder con datos seguros
+    return NextResponse.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        departamento: user.departamento
+      }
+    })
 
-    const token = jwt.sign({ userId: user.id, departamento: user.departamento }, SECRET_KEY, {
-      expiresIn: '1h',
-    });
-
-    return NextResponse.json({ token }, { status: 200 });
   } catch (error) {
-    console.error('Error en el inicio de sesión:', error);
-    return NextResponse.json({ message: 'Error en el servidor' }, { status: 500 });
+    console.error('Login error:', error)
+    
+    // Manejo específico de errores de base de datos
+    if (error instanceof Error && error.message.includes('P2024')) {
+      await prisma.$disconnect()
+      return NextResponse.json(
+        { message: 'Servicio no disponible' },
+        { status: 503 }
+      )
+    }
+    
+    return NextResponse.json(
+      { message: 'Error en el servidor' },
+      { status: 500 }
+    )
   }
 }

@@ -1,52 +1,67 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
+// app/api/register/route.ts
+import { NextResponse } from 'next/server'
+import bcrypt from 'bcrypt'
+import prisma from '@/lib/db'
 
-const prisma = new PrismaClient();
-interface DepartamentoColumn {
-  Type: string;
-}
-
-export async function GET() {
+export async function POST(request: Request) {
   try {
-      const departamentos = await prisma.$queryRaw<DepartamentoColumn[]>`SHOW COLUMNS FROM User LIKE 'departamento'`;
-      if (departamentos && departamentos.length > 0) {
-          const matchResult = departamentos[0].Type.match(/enum\(([^)]+)\)/);
-          if (matchResult) {
-            // Especificar el tipo de 'value' como string
-              const enumValues = matchResult[1].split(',').map((value: string) => value.replace(/'/g, '')); 
-              return NextResponse.json(enumValues, { status: 200 });
-          } else {
-            // Devuelve un array vacío si no es un enum
-              return NextResponse.json([], { status: 200 }); 
-          }
-      } else {
-        // Devuelve un array vacío si no se encuentra la columna
-          return NextResponse.json([], { status: 200 }); 
-      }
-  } catch (error) {
-      console.error('Error fetching departamentos:', error);
-      return NextResponse.json({ message: 'Error fetching departamentos' }, { status: 500 });
-  }
-}
+    const { username, password, departamento } = await request.json()
 
-export async function POST(req: NextRequest) {
-  const { username, password, departamento } = await req.json();
+    // Validación básica de campos
+    if (!username || !password || !departamento) {
+      return NextResponse.json(
+        { message: 'Todos los campos son requeridos' },
+        { status: 400 }
+      )
+    }
 
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Verificar si el usuario ya existe
+    const existingUser = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true }
+    })
 
-    const user = await prisma.user.create({
+    if (existingUser) {
+      return NextResponse.json(
+        { message: 'El nombre de usuario ya existe' },
+        { status: 409 }
+      )
+    }
+
+    // Hash de la contraseña
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Crear nuevo usuario
+    const newUser = await prisma.user.create({
       data: {
         username,
         password: hashedPassword,
-        departamento,
+        departamento
       },
-    });
+      select: {
+        id: true,
+        username: true,
+        departamento: true
+      }
+    })
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json(newUser, { status: 201 })
+
   } catch (error) {
-    console.error('Error al registrar el usuario:', error);
-    return NextResponse.json({ message: 'Error en el servidor' }, { status: 500 });
+    console.error('Error en registro:', error)
+    
+    // Manejo específico para error de conexión
+    if (error instanceof Error && error.message.includes('P2024')) {
+      await prisma.$disconnect()
+      return NextResponse.json(
+        { message: 'Servicio no disponible, intente más tarde' },
+        { status: 503 }
+      )
+    }
+
+    return NextResponse.json(
+      { message: 'Error al registrar usuario' },
+      { status: 500 }
+    )
   }
 }

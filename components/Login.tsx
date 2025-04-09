@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-const Login = () => {
+
+export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
@@ -92,5 +93,3 @@ const Login = () => {
     </div>
   );
 };
-
-export default Login;

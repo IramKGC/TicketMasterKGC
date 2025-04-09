@@ -1,31 +1,21 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { Departamento } from '@prisma/client'; // Importa el enum de Prisma
 
 const Registrar = () => {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [departamento, setDepartamento] = useState<string>('');
-  const [departamentos, setDepartamentos] = useState<string[]>([]);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchDepartamentos = async () => {
-      try {
-        const response = await fetch('/api/registrar');
-        const data: string[] = await response.json();
-        console.log('Departamentos obtenidos:', data);
-        setDepartamentos(data);
-        setDepartamento(''); // Establecer el valor predeterminado como vacío
-      } catch (error) {
-        console.error('Error al obtener departamentos:', error);
-      }
-    };
-
-    fetchDepartamentos();
-  }, []);
+  // Obtiene los departamentos directamente del enum de Prisma
+  const departamentos = Object.values(Departamento).map(dep => ({
+    value: dep,
+    label: dep.replace(/_/g, ' ') // Formatea para mostrar
+  }));
 
   const handleRegistrar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +48,6 @@ const Registrar = () => {
   return (
     <div className="relative custom-size rounded-md shadow-2xl flex justify-center items-center">
       <div className="relative w-4/12 h-10/12 bg-white rounded-3xl flex flex-col justify-center items-center border-2 border-zinc-100">
-        {/* Componente Image de Next.js con tipos correctos */}
         <Image 
           src="/INVERSO.png" 
           alt="Logo" 
@@ -92,8 +81,8 @@ const Registrar = () => {
           >
             <option value="" disabled>Selecciona un departamento</option>
             {departamentos.map((dep, index) => (
-              <option key={index} value={dep}>
-                {dep.replace(/_/g, ' ')}
+              <option key={index} value={dep.value}>
+                {dep.label}
               </option>
             ))}
           </select>

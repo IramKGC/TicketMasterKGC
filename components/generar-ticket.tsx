@@ -26,6 +26,7 @@ interface TicketData {
   descripcion: string;
   urgencia: Urgencia;
   categoria: Categoria;
+  estado: string;
 }
 
 Modal.setAppElement('body'); // Para accesibilidad del modal
@@ -112,14 +113,15 @@ export default function GenerarTicket() {
         asunto,
         descripcion,
         urgencia,
-        categoria
+        categoria,
+        estado: 'Pendiente',
       };
 
-      const response = await fetch('/api/tickets', {
+      const response = await fetch('/api/crear-tickets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(ticketData),
       });
