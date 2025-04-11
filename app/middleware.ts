@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith('/api/register')) {
     return NextResponse.next()
   }
-
+  
   const token = request.headers.get('Authorization')?.split(' ')[1]
   
   if (!token) {

@@ -1,14 +1,14 @@
-// app/api/tickets/route.ts
-import { NextResponse } from 'next/server'
-import prisma from '@/lib/db'
-import jwt from 'jsonwebtoken'
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/db';
+import jwt from 'jsonwebtoken';
 
 const SECRET_KEY = process.env.JWT_SECRET || '';
 
-
 export async function GET() {
   try {
+    // Obtener solo los tickets con borrado = false
     const tickets = await prisma.ticket.findMany({
+      where: { borrado: false }, // Filtrar por borrado = false
       include: {
         user: true, // Incluye los datos del usuario relacionado
       },
@@ -56,6 +56,7 @@ export async function POST(request: Request) {
         categoria,
         fecha: new Date(),
         estado: 'Pendiente',
+        borrado: false, // Asegurarse de que el ticket no esté marcado como borrado
         userId,
       },
     });
@@ -105,6 +106,39 @@ export async function PUT(req: Request) {
 
   } catch (error) {
     console.error('Error updating ticket:', error);
+    return NextResponse.json(
+      { message: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const token = req.headers.get('Authorization')?.split(' ')[1];
+    if (!token) {
+      return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
+    }
+
+    // Verificar el token
+    jwt.verify(token, SECRET_KEY);
+
+    // Obtener el ID del ticket desde el cuerpo de la solicitud
+    const { id } = await req.json();
+
+    if (!id || isNaN(Number(id))) {
+      return NextResponse.json({ message: 'ID de ticket inválido' }, { status: 400 });
+    }
+
+    // Realizar el borrado lógico (marcar borrado = true)
+    const ticket = await prisma.ticket.update({
+      where: { id: Number(id) },
+      data: { borrado: true },
+    });
+
+    return NextResponse.json({ message: 'Ticket marcado como borrado', ticket }, { status: 200 });
+  } catch (error) {
+    console.error('Error al marcar el ticket como borrado:', error);
     return NextResponse.json(
       { message: 'Error interno del servidor' },
       { status: 500 }

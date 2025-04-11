@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from 'next/navigation';
-import Image from "next/image"; // Añadido para reemplazar img
+import Image from "next/image";
 
 interface User {
   id: number;
@@ -102,7 +102,7 @@ export default function VerTicket() {
   }
 
   return (
-    <div className="relative bg-white flex justify-center items-center overflow-hidden h-screen">
+    <div className="relative bg-white flex justify-center items-center overflow-hidden min-h-screen px-4 sm:px-6 lg:px-8">
       <div className="relative custom-size rounded-md shadow-2xl flex justify-center items-center p-4">
         <div className="absolute top-4 left-4 hidden md:block hide-on-small">
           <p className="text-xs text-gray-500">{usuario}</p>
@@ -113,7 +113,8 @@ export default function VerTicket() {
             Ticket Master
           </h1>
         </div>
-        <div className="relative w-3/5 custom-height bg-white rounded-3xl flex flex-col justify-center items-center border-2 border-zinc-100 p-6 lg:p-12">
+        {/* Ajuste del div blanco */}
+        <div className="relative h-auto w-full max-w-3xl bg-white rounded-3xl flex flex-col justify-between items-center border-2 border-zinc-100 shadow-2xl p-6 lg:p-12 overflow-y-auto form-container">
           <div className="w-full flex flex-col items-center">
             <div className="flex flex-col items-center mb-4">
               <Image 
@@ -121,12 +122,12 @@ export default function VerTicket() {
                 alt="Venta de Entradas" 
                 width={96} 
                 height={96} 
-                className="w-auto h-16 lg:h-24 mb-4" 
+                className="w-16 h-16 sm:w-24 sm:h-24 mb-4 image-contained" 
               />
-              <h1 className="text-2xl lg:text-3xl font-bold text-black">Ver Ticket</h1>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black text-center">Ver Ticket</h1>
             </div>
-            <div className="w-full flex flex-col items-center space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+            <div className="w-full flex flex-col space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Asunto</label>
                   <p className="mt-1 block w-full border border-gray-300 rounded-2xl shadow-sm sm:text-sm bg-gray-100 p-2 text-black">
@@ -164,22 +165,22 @@ export default function VerTicket() {
                   </p>
                 </div>
               </div>
-              <div className="w-full">
-                  <label className="block text-sm font-medium text-gray-700">Descripción</label>
-                  <div className="mt-1 block w-full border border-gray-300 rounded-2xl shadow-sm sm:text-sm bg-gray-100 p-2 h-24 text-black" style={{ wordWrap: 'break-word', overflowWrap: 'break-word', overflowY: 'auto' }}>
-                    {ticket.descripcion}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                <div className="mt-1 block w-full border border-gray-300 rounded-2xl shadow-sm sm:text-sm bg-gray-100 p-2 h-24 text-black overflow-y-auto">
+                  {ticket.descripcion}
                 </div>
               </div>
-              <div className="w-full flex justify-end">
-                <button
-                  type="button"
-                  className="amarillokgc hover:amarillokgc-hover text-white px-4 py-2 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer"
-                  onClick={() => router.push('/inicio')}
-                >
-                  Volver
-                </button>
-              </div>
             </div>
+          </div>
+          <div className="w-full flex justify-end mt-4">
+            <button
+              type="button"
+              className="amarillokgc hover:amarillokgc-hover text-white px-4 py-2 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer"
+              onClick={() => router.push('/inicio')}
+            >
+              Volver
+            </button>
           </div>
         </div>
       </div>

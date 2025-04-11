@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Modal from 'react-modal';
 import Image from "next/image";
 import ventaDeEntradas from '/public/venta-de-entradas.png';
+import Swal from 'sweetalert2';
 
 // Definición de tipos
 interface UserData {
@@ -91,23 +92,23 @@ export default function GenerarTicket() {
   // Manejador de envío del formulario
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+  
     // Validación
     const newErrors: FormErrors = {};
     if (!asunto.trim()) newErrors.asunto = 'El asunto es obligatorio';
     if (!descripcion.trim()) newErrors.descripcion = 'La descripción es obligatoria';
-
+  
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-
+  
     const token = localStorage.getItem('token');
     if (!token) {
       router.push('/');
       return;
     }
-
+  
     try {
       const ticketData: TicketData = {
         asunto,
@@ -116,7 +117,7 @@ export default function GenerarTicket() {
         categoria,
         estado: 'Pendiente',
       };
-
+  
       const response = await fetch('/api/crear-tickets', {
         method: 'POST',
         headers: {
@@ -125,7 +126,7 @@ export default function GenerarTicket() {
         },
         body: JSON.stringify(ticketData),
       });
-
+  
       if (response.ok) {
         // Resetear formulario
         setAsunto('');
@@ -133,19 +134,64 @@ export default function GenerarTicket() {
         setUrgencia('Baja');
         setCategoria('Desarrollo');
         setErrors({});
-
-        // Mostrar modal si no es de Sistemas
-        if (departamento !== 'Sistemas') {
-          setModalIsOpen(true);
+  
+        // Verificar el departamento del usuario
+        if (departamento === 'Sistemas') {
+          // Mostrar retroalimentación con SweetAlert2 y redirigir a /inicio
+          await Swal.fire({
+            title: '¡Ticket creado!',
+            text: 'El ticket ha sido creado exitosamente.',
+            icon: 'success',
+            confirmButtonText: 'Aceptar',
+          });
+          router.push('/inicio');
+        } else {
+          // Mostrar opciones con SweetAlert2 para otros departamentos
+          const result = await Swal.fire({
+            title: '¡Ticket creado!',
+            text: 'El ticket ha sido creado y será atendido por el equipo correspondiente.',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Crear otro',
+            cancelButtonText: 'Salir del sistema',
+            reverseButtons: true,
+          });
+  
+          if (result.isConfirmed) {
+            // El usuario seleccionó "Crear otro"
+            setAsunto('');
+            setDescripcion('');
+            setUrgencia('Baja');
+            setCategoria('Desarrollo');
+            setErrors({});
+          } else {
+            // El usuario seleccionó "Salir del sistema"
+            localStorage.removeItem('token'); // Eliminar el token
+            router.push('/'); // Redirigir a la pantalla de login
+          }
         }
       } else {
         const errorData = await response.json();
         console.error('Error al crear el ticket:', errorData.message);
-        setErrors({ submit: 'Error al crear el ticket. Intente nuevamente.' });
+  
+        // Mostrar error con SweetAlert2
+        Swal.fire({
+          title: 'Error',
+          text: `Error al crear el ticket: ${errorData.message || 'Intente nuevamente.'}`,
+          icon: 'error',
+          confirmButtonText: 'Aceptar',
+        });
       }
     } catch (error) {
       console.error('Error en la solicitud:', error);
-      setErrors({ submit: 'Error de conexión. Intente nuevamente.' });
+  
+      // Mostrar error de conexión con SweetAlert2
+      Swal.fire({
+        title: 'Error',
+        text: 'Error de conexión. Intente nuevamente.',
+        icon: 'error',
+        confirmButtonText: 'Aceptar',
+      });
     }
   };
 
@@ -189,17 +235,17 @@ export default function GenerarTicket() {
 
   return (
     <div className="relative custom-size rounded-md shadow-2xl flex justify-center items-center p-4">
-      <div className="absolute top-4 left-4 hidden md:block hide-on-small">
-        <p className="text-xs text-gray-500">{usuario}</p>
-        <h1 
-          className="text-2xl font-bold text-black cursor-pointer"
-          onClick={() => departamento === 'Sistemas' && router.push('/inicio')}
-        >
-          Ticket Master
-        </h1>
-      </div>
+        <div className="absolute top-4 left-4 hidden md:block hide-on-small">
+          <p className="text-xs text-gray-500">{usuario}</p>
+          <h1
+            className="text-2xl font-bold text-black cursor-pointer"
+            onClick={() => router.push('/inicio')}
+          >
+            Ticket Master
+          </h1>
+        </div>
       
-      <div className="relative w-3/5 custom-height bg-white rounded-3xl flex flex-col justify-center items-center border-2 border-zinc-100 p-6 lg:p-12">
+        <div className="relative h-auto w-full max-w-3xl bg-white rounded-3xl flex flex-col justify-between items-center border-2 border-zinc-100 shadow-2xl p-6 lg:p-12 overflow-y-auto form-container">
         <div className="w-full flex flex-col items-center">
           <div className="flex flex-col items-center mb-4">
             <Image

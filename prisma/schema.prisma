@@ -5,15 +5,15 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
+  url      = "mysql://uheggxpusu88w0cy:99L8zPuXguynMk8LSegQ@bwzcpnb9kmrjhzbytfx6-mysql.services.clever-cloud.com:3306/bwzcpnb9kmrjhzbytfx6?connection_limit=1"
 }
 
 model User {
-  id          Int       @id @default(autoincrement())
-  username    String    @unique
-  password    String
+  id           Int          @id @default(autoincrement())
+  username     String       @unique
+  password     String
   departamento Departamento
-  tickets     Ticket[]  @relation("UserTickets")
+  tickets      Ticket[]     @relation("UserTickets")
 }
 
 model Ticket {
@@ -25,7 +25,10 @@ model Ticket {
   fecha       DateTime  @default(now())
   estado      Estado    @default(Pendiente)
   userId      Int
+  borrado     Boolean?  @default(false)
   user        User      @relation("UserTickets", fields: [userId], references: [id])
+
+  @@index([userId], map: "Ticket_userId_fkey")
 }
 
 enum Urgencia {
@@ -49,7 +52,7 @@ enum Estado {
 
 enum Departamento {
   Sistemas
-  Recursos_Humanos @map("Recursos Humanos")
+  Recursos_Humanos      @map("Recursos Humanos")
   Finanzas
   Monitoreo
   Seguridad_Patrimonial @map("Seguridad Patrimonial")

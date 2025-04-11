@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactPaginate from "react-paginate";
+import Image from "next/image";
+import Swal from 'sweetalert2';
 
 // Definición de tipos
 interface User {
@@ -20,12 +22,12 @@ interface Ticket {
   urgencia: string;
   fecha: string | Date;
   user: User;
+  borrado: boolean; 
 }
 
 type StatusFilter = "Todos" | "Activos";
 
 export default function Inicio() {
-  // Estados con tipos definidos
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [usuario, setUsuario] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("Todos");
@@ -34,7 +36,6 @@ export default function Inicio() {
   const ticketsPerPage = 15;
   const router = useRouter();
 
-  // Efecto para cargar datos
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -66,29 +67,35 @@ export default function Inicio() {
     };
 
     const fetchTickets = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        router.push('/');
+        router.push("/");
         return;
       }
     
       try {
-        const response = await fetch('/api/tickets', {
-          method: 'GET', 
+        const response = await fetch("/api/tickets", {
+          method: "GET",
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
     
         if (!response.ok) {
-          console.error(`Error al obtener los tickets: ${response.status} ${response.statusText}`);
+          console.error(
+            `Error al obtener los tickets: ${response.status} ${response.statusText}`
+          );
           return;
         }
     
         const data = await response.json();
-        setTickets(data);
+    
+        // Filtrar los tickets que tienen borrado = 0
+        const filteredTickets = data.filter((ticket: Ticket) => ticket.borrado === false);
+    
+        setTickets(filteredTickets);
       } catch (error) {
-        console.error('Error fetching tickets:', error);
+        console.error("Error fetching tickets:", error);
       }
     };
 
@@ -96,7 +103,6 @@ export default function Inicio() {
     fetchTickets();
   }, [router]);
 
-  // Manejadores de eventos
   const handleGenerateTicket = () => {
     router.push("/generar-ticket");
   };
@@ -141,48 +147,76 @@ export default function Inicio() {
     }
   };
 
+  const handleDeleteTicket = async (id: number) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/");
+      return;
+    }
+  
+    // Confirmación antes de eliminar
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'No podrás revertir esta acción',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+  
+    if (!result.isConfirmed) {
+      return; // Si el usuario cancela, no se realiza la eliminación
+    }
+  
+    try {
+      const response = await fetch(`/api/tickets`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id }), // Asegúrate de enviar el ID en el cuerpo
+      });
+  
+      if (response.ok) {
+        setTickets(tickets.filter((ticket) => ticket.id !== id));
+        Swal.fire('Eliminado', 'El ticket ha sido eliminado.', 'success');
+      } else {
+        const errorData = await response.json();
+        console.error("Error al eliminar el ticket:", errorData.message);
+        Swal.fire('Error', `Error al eliminar el ticket: ${errorData.message || "Error desconocido"}`, 'error');
+      }
+    } catch (error) {
+      console.error("Error de red al eliminar el ticket:", error);
+      Swal.fire('Error', 'Error de conexión al eliminar el ticket.', 'error');
+    }
+  };
 
   const handlePageClick = ({ selected }: { selected: number }) => {
     setCurrentPage(selected);
   };
 
- // Filtrado de tickets
-const filteredTickets = tickets.filter((ticket) => {
-  const query = searchQuery.toLowerCase().replace(/ /g, "_");
-  const estadoNormalizado = ticket.estado?.toLowerCase().replace(/ /g, "_");
-
-  return (
-    (filterStatus === "Todos" || ticket.estado !== "Completado") &&
-    (
-      ticket.categoria?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.urgencia?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      new Date(ticket.fecha).toLocaleDateString().includes(searchQuery) ||
-      ticket.user?.username?.toLowerCase().includes(searchQuery.toLowerCase()) || // responsable
-      estadoNormalizado.includes(query)
-    )
-  );
-});
-
-
-  // Paginación
   const offset = currentPage * ticketsPerPage;
-  const currentTickets = filteredTickets.slice(offset, offset + ticketsPerPage);
-  const pageCount = Math.ceil(filteredTickets.length / ticketsPerPage);
+  const currentTickets = tickets.slice(offset, offset + ticketsPerPage);
+  const pageCount = Math.ceil(tickets.length / ticketsPerPage);
 
   return (
     <div className="p-6 bg-white text-black min-h-screen">
-      <div className="mb-4 flex justify-between items-center">
-        <div>
+      <div className="mb-4 flex flex-col sm:flex-row justify-between items-center">
+        <div className="mb-4 sm:mb-0">
           <p className="text-xs text-gray-500">{usuario}</p>
           <h1 className="text-2xl font-bold">Ticket Master</h1>
         </div>
-        <div className="flex justify-center items-center">
+        {/* Search bar visible only on larger screens */}
+        <div className="hidden sm:flex justify-center items-center mb-4 sm:mb-0">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar..."
-            className="border border-gray-200 rounded-lg p-2 text-sm w-lg max-w-3xl"
+            className="border border-gray-200 rounded-lg p-2 text-sm w-full sm:w-lg max-w-3xl"
           />
         </div>
         <div className="flex items-center space-x-4">
@@ -214,14 +248,15 @@ const filteredTickets = tickets.filter((ticket) => {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+      <table className="w-full text-left border-collapse table-fixed">
           <thead>
             <tr className="border-b-2 border-gray-400">
-              <th className="p-2">Categoria</th>
-              <th className="p-2">Urgencia</th>
-              <th className="p-2">Fecha</th>
-              <th className="p-2">Responsable</th>
-              <th className="p-2">Estado</th>
+              <th className="p-2 w-1/6">Categoria</th>
+              <th className="p-2 w-1/6">Fecha</th>
+              <th className="p-2 w-1/6 hidden sm:table-cell">Urgencia</th>
+              <th className="p-2 w-1/6 hidden sm:table-cell">Responsable</th>
+              <th className="p-2 w-1/6">Estado</th>
+              <th className="p-2 w-1/6 text-center hidden sm:table-cell">Eliminar</th>
             </tr>
           </thead>
           <tbody>
@@ -231,19 +266,17 @@ const filteredTickets = tickets.filter((ticket) => {
                 className={`hover:bg-blue-100 cursor-pointer ${
                   index % 2 === 0 ? "bg-white" : "bg-gray-200"
                 }`}
-                onClick={() => handleTicketClick(ticket.id)}
+                onClick={() => handleTicketClick(ticket.id)} // Evento para consultar el ticket
               >
                 <td className="p-2">{ticket.categoria}</td>
-                <td className="p-2">{ticket.urgencia}</td>
-                <td className="p-2">
-                  {new Date(ticket.fecha).toLocaleDateString()}
-                </td>
-                <td className="p-2">{ticket.user?.username ?? "Desconocido"}</td>
+                <td className="p-2">{new Date(ticket.fecha).toLocaleDateString()}</td>
+                <td className="p-2 hidden sm:table-cell">{ticket.urgencia}</td>
+                <td className="p-2 hidden sm:table-cell">{ticket.user?.username ?? "Desconocido"}</td>
                 <td className="p-2">
                   <select
                     value={ticket.estado}
                     onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()} // Evitar que el clic en el select active el evento de la fila
                     className="border border-gray-300 rounded p-1"
                   >
                     <option value="Pendiente">Pendiente</option>
@@ -251,13 +284,29 @@ const filteredTickets = tickets.filter((ticket) => {
                     <option value="Completado">Completado</option>
                   </select>
                 </td>
+                <td className="p-2 text-center hidden sm:table-cell">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // Evitar que el clic en el botón active el evento de la fila
+                      handleDeleteTicket(ticket.id);
+                    }}
+                    className="hover:opacity-75"
+                  >
+                    <Image
+                      src="/basura.png"
+                      alt="Eliminar"
+                      width={24}
+                      height={24}
+                      className="inline-block"
+                    />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Paginación */}
       <div className="flex justify-center mt-4">
         <ReactPaginate
           previousLabel={"← Anterior"}
