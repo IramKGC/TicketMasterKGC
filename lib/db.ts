@@ -5,24 +5,17 @@ declare global {
 }
 
 // PrismaClient singleton para evitar múltiples instancias en desarrollo
-// y asegurar que las conexiones se cierren adecuadamente en producción
 const prisma = globalThis.prisma || new PrismaClient({
   log: ['warn', 'error'], // Opcional: puedes agregar 'query' para depuración
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL + (process.env.NODE_ENV === 'production' ? '?connection_limit=5' : ''),
-    },
-  },
 });
 
 if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
 
-// Función para limpiar conexiones inactivas
+// Función para cerrar todas las conexiones activas
 export async function cleanupConnections() {
   try {
-    // Cierra todas las conexiones activas
     await prisma.$disconnect();
-    console.log('Conexiones cerradas correctamente.');
+    console.log('Conexión cerrada correctamente.');
   } catch (error) {
     console.error('Error limpiando conexiones:', error);
   }

@@ -83,3 +83,19 @@ body {
 .modal-content {
   color: black; /* Asegúrate de que el texto sea visible */
 }
+
+
+/* Evitar deslizamiento horizontal en dispositivos móviles */
+@media (max-width: 767px) {
+  .overflow-x-hidden {
+    overflow-x: hidden;
+  }
+
+  table {
+    table-layout: fixed;
+  }
+
+  th, td {
+    word-wrap: break-word;
+  }
+}

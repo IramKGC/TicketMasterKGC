@@ -197,11 +197,17 @@ export default function Inicio() {
   const handlePageClick = ({ selected }: { selected: number }) => {
     setCurrentPage(selected);
   };
-
+  
+  const filteredTickets = tickets.filter((ticket) => {
+    if (filterStatus === "Todos") return true; // Mostrar todos los tickets
+    if (filterStatus === "Activos") return ticket.estado !== "Completado"; // Mostrar solo los tickets activos
+    return true;
+  });
+  
   const offset = currentPage * ticketsPerPage;
-  const currentTickets = tickets.slice(offset, offset + ticketsPerPage);
-  const pageCount = Math.ceil(tickets.length / ticketsPerPage);
-
+  const currentTickets = filteredTickets.slice(offset, offset + ticketsPerPage);
+  const pageCount = Math.ceil(filteredTickets.length / ticketsPerPage);
+  
   return (
     <div className="p-6 bg-white text-black min-h-screen">
       <div className="mb-4 flex flex-col sm:flex-row justify-between items-center">
@@ -209,7 +215,6 @@ export default function Inicio() {
           <p className="text-xs text-gray-500">{usuario}</p>
           <h1 className="text-2xl font-bold">Ticket Master</h1>
         </div>
-        {/* Search bar visible only on larger screens */}
         <div className="hidden sm:flex justify-center items-center mb-4 sm:mb-0">
           <input
             type="text"
@@ -246,9 +251,9 @@ export default function Inicio() {
           </div>
         </div>
       </div>
-
-      <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse table-fixed">
+  
+      <div className="overflow-x-hidden w-full">
+        <table className="w-full text-left border-collapse table-fixed">
           <thead>
             <tr className="border-b-2 border-gray-400">
               <th className="p-2 w-1/6">Categoria</th>
@@ -277,11 +282,14 @@ export default function Inicio() {
                     value={ticket.estado}
                     onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
                     onClick={(e) => e.stopPropagation()} // Evitar que el clic en el select active el evento de la fila
-                    className="border border-gray-300 rounded p-1"
+                    className="border border-gray-300 rounded p-1 text-xs sm:text-sm"
                   >
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="En_proceso">En proceso</option>
-                    <option value="Completado">Completado</option>
+                    <option value="Pendiente" className="sm:block hidden">Pendiente</option>
+                    <option value="Pendiente" className="block sm:hidden">Pend.</option>
+                    <option value="En_proceso" className="sm:block hidden">En proceso</option>
+                    <option value="En_proceso" className="block sm:hidden">En proc.</option>
+                    <option value="Completado" className="sm:block hidden">Completado</option>
+                    <option value="Completado" className="block sm:hidden">Compl.</option>
                   </select>
                 </td>
                 <td className="p-2 text-center hidden sm:table-cell">
@@ -306,7 +314,7 @@ export default function Inicio() {
           </tbody>
         </table>
       </div>
-
+  
       <div className="flex justify-center mt-4">
         <ReactPaginate
           previousLabel={"← Anterior"}
