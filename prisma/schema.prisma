@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://uheggxpusu88w0cy:99L8zPuXguynMk8LSegQ@bwzcpnb9kmrjhzbytfx6-mysql.services.clever-cloud.com:3306/bwzcpnb9kmrjhzbytfx6?connection_limit=3"
+  url      = "mysql://uheggxpusu88w0cy:99L8zPuXguynMk8LSegQ@bwzcpnb9kmrjhzbytfx6-mysql.services.clever-cloud.com:3306/bwzcpnb9kmrjhzbytfx6?connection_limit=3&pool_timeout=10"
 }
 
 model User {
